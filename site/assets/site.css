@@ -161,13 +161,22 @@ main pre {
   overflow-wrap: anywhere;
 }
 
-/* Live examples: the real example page, framed. */
+/*
+ * Live examples: one frame per snippet, of its render page (live/, with the
+ * real CSS). This height holds without JavaScript; site.js fits
+ * each frame to its content. Frames that open dialogs, popovers or toasts
+ * keep room for them.
+ */
 .example-frame {
   display: block;
   inline-size: 100%;
-  aspect-ratio: 4 / 3;
+  block-size: 14rem;
   border: var(--dui-border-width) solid var(--dui-color-border);
   border-radius: var(--dui-radius-surface);
+}
+
+.example-frame[data-tall] {
+  min-block-size: 28rem;
 }
 
 /* Token filter (shown by site.js). */
@@ -205,8 +214,8 @@ main pre {
 }
 
 /*
- * Previews. Decorative (aria-hidden): the value text beside each one is
- * the reference. Each sample sits in a data-color-scheme scope, so the
+ * Previews. Decorative (aria-hidden): the Light and Dark cells of the row
+ * hold the values as text. Each sample sits in a data-color-scheme scope, so the
  * dark one is shown on the dark surface whatever the page scheme. --preview
  * holds the resolved value, never var(), so the dark value is literal too.
  */
