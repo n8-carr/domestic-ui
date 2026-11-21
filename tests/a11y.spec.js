@@ -11,7 +11,13 @@ const axe = (page) => new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
  * to finish, so axe measures final colors, not a frame mid-fade.
  * @param {import("@playwright/test").Page} page
  */
-const settle = (page) => page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {}))));
+const settle = (page) =>
+  page.evaluate(async () => {
+    // Two frames first: under CI load WebKit can report no animations before an
+    // @starting-style transition has started, and axe then reads mid-fade colors.
+    for (let i = 0; i < 2; i++) await new Promise((r) => requestAnimationFrame(r));
+    await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {})));
+  });
 
 for (const path of examples) {
   test.describe(path, () => {
@@ -48,6 +54,19 @@ for (const path of examples) {
           expect(open.violations, `#${id}\n${summarize(open.violations)}`).toEqual([]);
           await popover.evaluate((el) => el.hidePopover());
           await expect(popover).toBeHidden();
+        }
+
+        // Comboboxes: open each list with an option active, check, close.
+        for (const combobox of await page.locator("dui-combobox [role='combobox']").all()) {
+          await combobox.focus();
+          await page.keyboard.press("Alt+ArrowDown");
+          if ((await combobox.getAttribute("aria-expanded")) !== "true") continue; // no options yet (loaded by the page)
+          await page.keyboard.press("ArrowDown");
+          await settle(page);
+          const open = await axe(page);
+          expect(open.violations, `#${await combobox.getAttribute("id")}\n${summarize(open.violations)}`).toEqual([]);
+          await page.keyboard.press("Escape");
+          await expect(combobox).toHaveAttribute("aria-expanded", "false");
         }
 
         // Tabs: select every tab once (the selected panel is the only one shown).
