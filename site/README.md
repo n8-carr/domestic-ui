@@ -37,7 +37,8 @@ indexes, which is why every docs link points at a file (`principles/index.html`,
 | `site/check-other-systems.mjs` | Dead-link check for that file; run by `npm test`. |
 | `site/lib/demo-views.mjs` | Reads and validates `site/data/demo-views.json` (see [Demo views](#demo-views)). |
 | `site/assets/site.css` | Docs layout only, with semantic `--dui-*` tokens and the layout primitives. |
-| `site/assets/site.js` | Progressive enhancement only: closes the Docs menu on narrow screens, runs the token filter. |
+| `site/assets/site.js` | Progressive enhancement only: scrolls the current sidebar link into view, fits live frames, runs the token filter. |
+| `site/assets/highlight.js` | Syntax highlighting for every `pre > code` with the CSS Custom Highlight API ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/CSS_Custom_Highlight_API)). A block opts out with `class="language-text"`. Owned by the Lead. |
 
 `_site/` is wiped and rebuilt each time. `css/` and `web-components/` are copied into it unchanged,
 so the docs and the render pages load the real CSS and components by relative path, at `/_site/`
@@ -51,22 +52,33 @@ compare bytes.
 
 ## Page structure
 
-Element, component, layout and pattern pages follow the order of an MDN reference page. A new page
-type follows it too:
+Element, component, layout and pattern pages share one outline, built by `referenceBlocks()` in
+`site/lib/pages.mjs` (the order of an MDN reference page). Empty sections are left out; nothing is
+added to fill one. A new page type follows it too:
 
 1. **H1 and a one-sentence summary.** An **Our choice:** line under it only when no native element
-   or APG pattern covers the thing.
+   or APG pattern covers the thing. Planned patterns add "Coming in M3." and skip 2 and 3.
 2. **Live example.** Per snippet: its name (`###`), its render and directly below it its markup,
    from the same text (see [Snippet convention](#snippet-convention)). Prose never repeats markup.
-   Planned patterns show "Coming in M3." instead and nothing else from this list until 4.
-3. **Attributes** (**API** for layouts and utilities). The `data-<component>` attribute and its
-   values, the native attributes that matter, then short usage notes. Labelled header blocks
-   (`States`, `Sizes`, `Focus`), `Keyboard` and the group README's **Our choice** bullets follow.
+3. **Attributes** (**API** for layouts and utilities). The group README's index cell as written,
+   then the header comment's API block as a table (**Attribute or value | Where | Effect**: rows are
+   split at two or more spaces, a line indented to the second column continues its row, "on
+   `<element>`" becomes Where; see `site/lib/api-table.mjs`), prose lines of the block as
+   paragraphs, then short usage notes, then the group README's **Our choice:** bullets (each keeps
+   its label; no heading). Then, as `###` under it, each labelled header block (`States`, `Sizes`,
+   `Focus`, `Motion`, `Breakpoint`, `Elevation`, …) as prose without URLs, or as a table when it is
+   written as rows, and `### Keyboard` (Key | Action, or one line pointing at the standard's
+   keyboard section).
 4. **Accessibility.** Short, concrete bullets, each borrowed fact linked to WCAG, APG, MDN or its author.
 5. **Specifications.** Labelled links: MDN, WHATWG, W3C, WCAG 2.2, WAI-ARIA APG.
 6. **See also.** The level index, the component API convention, the accessibility baseline, the
    source files on GitHub, and the demo views that use the page (see [Demo views](#demo-views)).
 7. **How other systems do it**, last (see below).
+
+The breadcrumb sits above the H1, previous and next links after the page, and the page's H2s are
+listed in "On this page" beside it on wide screens (see [Sidebar](#sidebar)). Prose, tables, code
+and live frames share one content width (`--dui-measure`); token pages (`wide: true`) take all of
+`main` and have no "On this page".
 
 Writing rules: be specific and direct; no preamble ("This page describes…"), no repeating the
 summary in the body, no marketing. Never present a native pattern as ours. One short example per
@@ -75,38 +87,62 @@ or drop it.
 
 ## Sidebar
 
-Every page has one navigation: the Docs sidebar, `<nav aria-label="Docs">`. Its top-level entries
-are fixed in `NAV` in `site/lib/nav.mjs`, in this order; each links its index page and lists the
+The frame of every page is the app shell (`css/layout/app-shell.css`, `<dui-app-shell>` from
+`web-components/dui-app-shell.js`, copied into `_site/` with the rest of `web-components/`): a skip
+link, then `<header>` (the app bar), `<nav id="docs-nav" aria-label="Docs">` (the sidebar), `<main
+id="main">`, an optional `<aside>` "On this page" and `<footer>`, in that source order.
+
+- **App bar:** the site name, the top sections (`TOP` in `site/lib/nav.mjs`) as a
+  `data-nav="horizontal"` list (`aria-current="page"` on a section's own page, `"true"` on the pages
+  under it), an empty hidden slot for the M4 search, a GitHub link, and the Menu toggle
+  (`aria-controls="docs-nav"`, `hidden` until `<dui-app-shell>` shows it). Below `64rem` of shell
+  width the section links are left out: the sidebar links every page.
+- **Sidebar:** the Docs entries. Its top-level entries are fixed in `NAV` in `site/lib/nav.mjs`, in
+  this order; each links its index page ("Atoms overview") and lists the
 pages of its sections below it, in the order `buildPages()` returns them.
 
 | Entry | Links | Lists |
 | --- | --- | --- |
 | Getting started | `index.html` | |
 | Principles | `principles/index.html` | one page per `PRINCIPLES.md` section |
-| Tokens | `tokens/index.html` | one page per file in `css/tokens/` |
+| Tokens | `tokens/index.html` | one page per file in `css/tokens/`, then the patterns at level `token` (density) |
 | Base | `components/base.html` | utilities (`components/utilities/<name>.html`) |
-| Layout | `layouts/index.html` | the layout primitives |
-| Atoms, Molecules, Organisms | `<group>/index.html` | `components/<group>/<name>.html` |
-| Patterns and guides | `patterns/index.html` | every pattern with "(coming in M3)" while planned, `guides/index.html`, every guide |
+| Layout | `layouts/index.html` | the layout primitives, then the patterns at level `layout` |
+| Atoms, Molecules, Organisms | `<group>/index.html` | `components/<group>/<name>.html`, then the patterns at that level, with "(coming in M3)" while planned |
+| Patterns | `patterns/index.html` | (every pattern is under its level) |
+| Guides | `guides/index.html` | every guide |
 | Demos | `demos.html` | |
 | Contributing | `contributing.html` | |
 | Changelog | `changelog.html` | |
 
 **Our choice:** utilities sit under Base, not Layout, because they are not layout primitives.
+A pattern is listed under its level (its `level` front matter), so Molecules and Organisms hold the
+molecules and organisms whatever their source; `patterns/index.html` lists them all, grouped by
+level. Link text is the element's name, singular (`NAV_LABELS` in `site/lib/nav.mjs`: Button, Link,
+Controls, Alert, Density); the page title keeps the README's or registry's wording.
 There is no examples section: each example is on its element's page, and the old example URLs
 redirect there.
 
 A new page goes where its `section` says (`Page["section"]` in `site/lib/pages.mjs`); there is no
-per-page nav to edit. The current page's link has `aria-current="page"` (exactly one per page); its
-entry's `<li>` gets `data-current-section`, drawn as a tinted band with an edge line, with no
-second `aria-current`. The build fails if an entry links a page that is not built.
+per-page nav to edit. The build fails if an entry links a page that is not built.
 
-The sidebar is a native `<details open>` with the summary "Docs menu". Without JavaScript it is open
-at every width. `site.js` closes it on load when the viewport is narrower than `64em` and keeps it
-open when wider (the same query as `site.css`). At `64em` and up the body is a CSS grid with the
-sidebar column (`--dui-size-column-min`) beside `main`; the sidebar is sticky, at most one viewport
-tall and scrolls on its own; the summary is hidden while the menu is open. Links and the summary
-are at least 44px tall (`--dui-size-target`).
+The sidebar is `data-nav="vertical"` (`css/components/molecules/nav.css`) on the
+[APG Disclosure Navigation](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/examples/disclosure-navigation/)
+pattern: an entry with pages is a native `<details>` group, and only the group that holds the current
+page has `open` in the markup, so it is right without JavaScript. Links, not `role="menu"`: Tab moves
+through them. The current page's link has `aria-current="page"` (once in the sidebar); nav.css draws
+it and makes its group's summary bold. Where the shell is at least `48rem` wide the sidebar sits beside
+`main`, sticky and scrolling on its own, and `site.js` scrolls the current link into view inside it
+(never the page). Narrower, the Menu button opens the same element as a modal drawer (`<dialog
+data-dialog="drawer start" closedby="any">`, built by `<dui-app-shell>`): Esc or the backdrop close it
+and focus returns to the button. Without JavaScript the sidebar stacks above `main` with its groups
+closed except the current one.
+
+- **Breadcrumb** (`data-breadcrumb`) above the `h1` on every page but the home page: the top section
+  (text), the entry's index page and the page itself with `aria-current="page"`.
+- **Previous and next** (`data-pagination`, "Previous: Badge") at the end of `main`, in sidebar order.
+- **On this page:** the `<aside>` lists the page's `h2`s when it has two or more. It is the shell's
+  auxiliary sidebar from `64rem`; narrower it is left out (the same links are just below).
 
 `llms.txt` has one H2 per sidebar entry, in the same order. `README.md` is short: the intro, links,
 install and use, the principles list, one components table (Base, Layout and the component levels),
@@ -317,8 +353,8 @@ keyboard:
 | Key | Rule |
 | --- | --- |
 | `title`, `summary` | Required in practice. Inline Markdown. |
-| `milestone` | `M3` or `M3b`; groups `patterns/index.html` and sets the "Coming in …" sentence. |
-| `level` | `molecule`, `organism`, `layout` or `token`; places the pattern on that level's index page (`molecules/index.html`, `layouts/index.html`, …). |
+| `milestone` | `M3` or `M3b`; sets the "Coming in …" sentence and the sidebar note while planned. |
+| `level` | `molecule`, `organism`, `layout` or `token`; places the pattern on that level's index page and under that level in the sidebar (`molecules/index.html`, `layouts/index.html`, …). |
 | `standard` | One `Label: URL` or a list of them: the native element or APG pattern it follows. |
 | `our-choice` | One line, only when there is no standard. The build fails if a pattern has neither. |
 | `specs` | Further `Label: URL` links, shown under Specifications after the standards. |
@@ -451,7 +487,8 @@ between. A token with no comment falls back to its purpose in the `PRINCIPLES.md
 table, marked "†" (the page intro says where † descriptions come from); with neither it shows
 "No description yet" in muted italic.
 
-Values: **Written as** is the value in the file. **Light** and **Dark** substitute every `var()`
+Columns: **Token | Preview | Light | Dark | Description**; **Written as** (the value in the file)
+is a small muted line in Description when it differs from Light or Dark. **Light** and **Dark** substitute every `var()`
 recursively through the tokens of all files (a fallback is used for unknown names; a cycle stays as
 written) and take the first or second argument of `light-dark()`. Other functions (`color-mix()`,
 `clamp()`) are left as written with their arguments resolved.
@@ -467,12 +504,24 @@ one when the values match), each in a `data-color-scheme` scope. The sample's va
 literal (in `style="--preview: …"`), so the dark sample shows the dark value whatever the page
 scheme. A value that would need an HTML entity in the `style` attribute gets "None".
 
-Each group is a `<table>` with a `<caption>` ("Spacing (primitive tokens)"), `<th scope="col">`
-headers and the token name in `<code>` in a `<th scope="row">`, wrapped in:
+Each group is its `h2`, then a `<table aria-labelledby="<h2 id>">` (no visible caption: the
+heading is the name), `<th scope="col">` headers and the token name in `<code>` in a
+`<th scope="row">`, wrapped in:
 
 ```html
-<div data-scroll="inline" tabindex="0" role="region" aria-label="Spacing (primitive tokens) (scrolls horizontally)">
+<div data-scroll="inline" tabindex="0" role="region" aria-labelledby="spacing">
 ```
+
+Markdown tables get the same: a region and a table both labelled by the heading above them.
+
+Code blocks follow `css/base/typography.css`: a `<pre>` wraps by default, and
+`pre[data-scroll~="inline"]` with `tabindex="0"` and a name keeps `white-space: pre` and scrolls.
+The docs opt in wherever line structure matters: every snippet (`<pre data-snippet="…"
+data-scroll="inline" role="region" tabindex="0" aria-label="Markup: Variants">`) and every fenced
+block of more than one line (`aria-label="Code: <heading>"`). `role="region"` lets the `<pre>` carry
+a name (ARIA prohibits naming its generic role). A one-line fence stays a plain `<pre>` and wraps,
+with no extra focus stop. `site.css` sets no `white-space` or `overflow-wrap` on `pre`.
+`site/assets/highlight.js` highlights every `pre > code`.
 
 `data-scroll="inline"` is the core CSS API for horizontal scroll regions, styled by
 [`css/layout/scroll.css`](../css/layout/scroll.css); `site.css` adds no rule of its own. Tables are never `display: block`. Hyphenated words in values never
@@ -515,6 +564,10 @@ explanation and its live example. Example markup has one source: named snippet r
 </div>
 ```
 
+- **Working code only.** Snippets hold no explanatory comments. Prose about a snippet goes in
+  `site/data/snippet-notes.json` (`{ "<example path>": { "<snippet name>": "Markdown" } }`) and is
+  shown under the snippet's name on its page, its Markdown twin and `llms-full.txt`; the build fails
+  if a note names a snippet that does not exist.
 - **One rule.** A snippet is the text between `<!-- dui:snippet name="…" -->` and
   `<!-- /dui:snippet -->`. `name` is required (the build fails without one), is the snippet's
   heading, and is unique in its file. Nothing else is a snippet: not `<pre><code>`, not `<main>`.
@@ -571,16 +624,16 @@ themselves, then run `node site/build.mjs`. Two checks catch a forgotten rebuild
 
 ## Accessibility of the docs
 
-Every page has a skip link (the first focusable element), one labelled Docs nav with one
-`aria-current="page"`, one `h1`, tables with `<caption>` and `th scope`, and iframes with a `title`.
-Code blocks wrap instead of scrolling horizontally, so no `<pre>` needs `tabindex` or an accessible
-name (which ARIA 1.2 prohibits on the `pre` element's generic role). Long words, URLs and inline
-code in prose break anywhere (`overflow-wrap: anywhere`); only token tables scroll, inside their
-named `data-scroll` region.
+Every page has a skip link (the first focusable element), landmarks in source order (app shell), one
+`aria-current="page"` in the Docs nav, one `h1`, tables labelled by their heading with `th scope`,
+and iframes with a `title`. Long words and URLs in prose and cells break only where they would
+overflow (`overflow-wrap: break-word`); inline code in prose may break anywhere only below `30em`.
+Tables and multi-line code blocks scroll inside named `data-scroll="inline"` regions.
 
 `tests/docs.spec.js` (Chromium) runs html-validate and axe (WCAG 2.2 AA tags, light and dark) on
-every page and every render page, blocks external requests, and checks the sidebar (one nav, order,
-every built page reachable, one `aria-current`, no example links), the snippets (see
+every page and every render page, blocks external requests, and checks the navigation (sidebar order, every built page reachable, one `aria-current` and only the
+current group open, the app bar's current section, the breadcrumb, previous and next in sidebar order,
+no ARIA menu roles, no example links), the snippets (see
 [Snippet convention](#snippet-convention)), the redirects (html-validate, axe, landing on their page),
 the web components working in their frames, the token tables and parser, the filter, and the page
 with JavaScript off.
@@ -591,5 +644,6 @@ redirects), at 320×640 and 375×812, it
 asserts `scrollWidth <= clientWidth` on the root (the failure names the widest element) and that no
 `<pre>` scrolls, and runs axe with the same tags as `tests/a11y.spec.js`. Frames are excluded from
 that axe run: their markup is `examples/` markup, checked by `tests/a11y.spec.js`. It also
-opens and closes the Docs menu with Enter and Space at 375px, tabs to the current page link, and
-checks the wide-screen sidebar. Both specs share `tests/docs-helpers.js`, which builds `_site/` once.
+opens the Docs drawer with Enter at 375px, tabs to the current page link, closes it with Esc and
+checks that focus returns to the Menu button, and checks the wide-screen sidebar (beside main, one
+open group, no ARIA menu roles). Both specs share `tests/docs-helpers.js`, which builds `_site/` once.
