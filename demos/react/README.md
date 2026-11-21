@@ -1,11 +1,16 @@
 # domestic-ui demo: React
 
-The dashboard and account settings views in React 19 with Vite, as a two-page
-[multi-page app](https://vite.dev/guide/build#multi-page-app) (`index.html` and `settings.html`).
+The dashboard, account settings and orders views in React 19 with Vite, as a three-page
+[multi-page app](https://vite.dev/guide/build#multi-page-app) (`index.html`, `settings.html` and
+`orders.html`). `src/Layout.tsx` renders the app shell around every view and imports
+`dui-app-shell.js` and `dui-menu.js`; the orders view adds a page header, a filter bar, a data
+table, a list-detail of orders in the order details sidebar and a compact-density toggle, and
+imports `dui-combobox.js`, `dui-table.js` and `dui-toolbar.js` from `../../../web-components/`.
+`src/custom-elements.d.ts` declares the `dui-*` tags for JSX.
 
 `src/Layout.tsx` imports the shipped stylesheet straight from the repository
 (`import '../../../css/domestic.css'`); Vite inlines its `@import … layer()` rules and keeps the
-cascade layers. `server.fs.allow` in `vite.config.ts` lets the dev server read `../../css`.
+cascade layers. `server.fs.allow` in `vite.config.ts` lets the dev server read `../../css` and `../../web-components`.
 
 ## Prerequisites
 
@@ -22,7 +27,7 @@ npm ci
 
 ```sh
 npm run dev
-# open http://localhost:5173/ and http://localhost:5173/settings.html
+# open http://localhost:5173/, /settings.html and /orders.html
 ```
 
 ## Build

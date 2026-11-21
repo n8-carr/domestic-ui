@@ -1,6 +1,12 @@
 # domestic-ui demo: plain HTML
 
-The dashboard and account settings views as two static HTML files, with no build step.
+The dashboard, account settings and orders views as three static HTML files, with no build step.
+Every view sits in the app shell (`<dui-app-shell data-app-shell>`: app bar, main navigation, footer).
+The orders view adds a page header, a filter bar, a data table, a list-detail of orders in the
+order details sidebar, and a compact-density toggle, written as in `examples/app-shell.html`. All
+rows, the order list and the default order are in the HTML, so it works without JavaScript;
+`orders.js` only filters rows, shows the chosen order and toggles density. The pages load the
+custom elements they use from `../../web-components/` as module scripts.
 
 ## Prerequisites
 

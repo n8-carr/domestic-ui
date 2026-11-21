@@ -1,12 +1,18 @@
 # domestic-ui demo: Angular
 
-The dashboard and account settings views in Angular 22: standalone components, two routes
-(`''` and `'settings'`) with Angular Router, a `title` per route, and `routerLinkActive` with
+The dashboard, account settings and orders views in Angular 22: standalone components, three
+routes (`''`, `'settings'` and `'orders'`) with Angular Router, a `title` per route, and `routerLinkActive` with
 `ariaCurrentWhenActive="page"` for the current link.
 
 The shipped stylesheet is listed in `angular.json` `styles` as `../../css/domestic.css`, so the
-build bundles it with its cascade layers. `src/styles.css` holds only the page container
-and `app-root { display: block; }` (custom elements are inline by default).
+build bundles it with its cascade layers. `src/styles.css` holds only
+`app-root { display: block; }` (custom elements are inline by default).
+Each routed page's host element is the app shell itself (`selector: 'dui-app-shell[app-…-page]'`),
+so the app bar (`header[app-bar]`), main navigation (`nav[app-nav]`), `<main>` and the orders
+view's order details `<aside>` are its direct children. The orders view adds a page header, a
+filter bar, a data table, a list-detail of orders and a compact-density toggle; it imports
+`dui-combobox.js`, `dui-table.js` and `dui-toolbar.js` from the repository's `web-components/`
+and declares `CUSTOM_ELEMENTS_SCHEMA` so the template can use the `dui-*` tags as is.
 
 Two choices worth knowing:
 
@@ -42,7 +48,7 @@ npm run build   # static output in dist/angular/browser/
 ```
 
 Serve `dist/angular/browser/` with a fallback to `index.html` for unknown paths, so `/settings`
-loads the app.
+and `/orders` load the app.
 
 ## Accessibility check
 
