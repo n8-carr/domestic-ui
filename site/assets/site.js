@@ -42,11 +42,13 @@ const revealCurrent = (scroller) => {
   if (!(current instanceof HTMLElement) || scroller.scrollHeight <= scroller.clientHeight) return;
   // The part of the sidebar on screen: below the app bar it may run past the bottom of the viewport.
   const box = scroller.getBoundingClientRect();
-  const top = Math.max(box.top, 0);
-  const bottom = Math.min(box.bottom, window.innerHeight);
+  // Its scrollport: inside the border, above any horizontal scrollbar.
+  const top = Math.max(box.top + scroller.clientTop, 0);
+  const bottom = Math.min(box.top + scroller.clientTop + scroller.clientHeight, window.innerHeight);
   const r = current.getBoundingClientRect();
-  if (r.top < top) scroller.scrollTop -= top - r.top;
-  else if (r.bottom > bottom) scroller.scrollTop += r.bottom - bottom;
+  // Whole pixels, rounded away from the link, so a fractional offset never leaves it clipped.
+  if (r.top < top) scroller.scrollTop -= Math.ceil(top - r.top);
+  else if (r.bottom > bottom) scroller.scrollTop += Math.ceil(r.bottom - bottom);
 };
 
 const docsNav = document.getElementById("docs-nav");
